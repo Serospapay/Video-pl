@@ -20,7 +20,8 @@ function createWindow() {
             preload: path_1.default.join(__dirname, 'preload.js'),
             nodeIntegration: false,
             contextIsolation: true,
-            webSecurity: false, // Allow loading local resources
+            sandbox: false, // Need to disable for file:// protocol
+            webSecurity: false, // Required for loading local video files via file://
         },
         backgroundColor: '#000000', // Dark background
     });
@@ -55,15 +56,45 @@ function createWindow() {
     });
     // File open handler
     electron_1.ipcMain.handle('open-file', async () => {
-        const { canceled, filePaths } = await electron_1.dialog.showOpenDialog({
-            properties: ['openFile'],
-            filters: [{ name: 'Movies', extensions: ['mkv', 'avi', 'mp4', 'webm', 'mov'] }]
-        });
-        if (canceled) {
+        try {
+            const { canceled, filePaths } = await electron_1.dialog.showOpenDialog({
+                properties: ['openFile'],
+                filters: [{ name: 'Movies', extensions: ['mkv', 'avi', 'mp4', 'webm', 'mov', 'flv', 'wmv', 'm4v'] }]
+            });
+            if (canceled || !filePaths || filePaths.length === 0) {
+                return null;
+            }
+            const filePath = filePaths[0];
+            electron_log_1.default.info(`File selected: ${filePath}`);
+            return filePath;
+        }
+        catch (error) {
+            electron_log_1.default.error('Error opening file:', error);
             return null;
         }
-        else {
-            return filePaths[0];
+    });
+    // Screenshot save handler
+    electron_1.ipcMain.handle('save-screenshot', async (_event, dataUrl, defaultName) => {
+        try {
+            const { canceled, filePath } = await electron_1.dialog.showSaveDialog({
+                defaultPath: defaultName,
+                filters: [{ name: 'Images', extensions: ['png'] }]
+            });
+            if (canceled || !filePath) {
+                return false;
+            }
+            // Convert base64 to buffer
+            const base64Data = dataUrl.replace(/^data:image\/png;base64,/, '');
+            const buffer = Buffer.from(base64Data, 'base64');
+            // Write file
+            const fs = require('fs');
+            fs.writeFileSync(filePath, buffer);
+            electron_log_1.default.info(`Screenshot saved: ${filePath}`);
+            return true;
+        }
+        catch (error) {
+            electron_log_1.default.error('Error saving screenshot:', error);
+            return false;
         }
     });
 }

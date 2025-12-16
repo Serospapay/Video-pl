@@ -1,6 +1,8 @@
 import React from 'react';
-import { X, Plus, Play, Trash2, Repeat, Shuffle } from 'lucide-react';
+import { Plus, Play, Trash2, Repeat, Shuffle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { getFileName } from '../../utils/fileUtils';
+import { getVideoProgress } from '../../utils/watchHistory';
 import './Playlist.css';
 
 interface PlaylistProps {
@@ -26,12 +28,6 @@ export const Playlist: React.FC<PlaylistProps> = ({
     onToggleLoop,
     onToggleShuffle
 }) => {
-    const getFileName = (path: string) => {
-        // Handle both Windows and Unix paths
-        const name = path.split(/[/\\]/).pop();
-        return name ? decodeURIComponent(name) : path;
-    };
-
     return (
         <motion.div
             className="playlist-container glass"
@@ -47,6 +43,7 @@ export const Playlist: React.FC<PlaylistProps> = ({
                         onClick={onToggleShuffle}
                         className={`action-button ${isShuffling ? 'active' : ''}`}
                         title="Shuffle"
+                        aria-label={isShuffling ? 'Disable shuffle' : 'Enable shuffle'}
                     >
                         <Shuffle size={18} />
                     </button>
@@ -54,10 +51,16 @@ export const Playlist: React.FC<PlaylistProps> = ({
                         onClick={onToggleLoop}
                         className={`action-button ${isLooping ? 'active' : ''}`}
                         title="Loop Playlist"
+                        aria-label={isLooping ? 'Disable loop' : 'Enable loop'}
                     >
                         <Repeat size={18} />
                     </button>
-                    <button onClick={onAddFile} className="add-button">
+                    <button
+                        onClick={onAddFile}
+                        className="add-button"
+                        title="Add video"
+                        aria-label="Add video to playlist"
+                    >
                         <Plus size={20} />
                     </button>
                 </div>
@@ -65,33 +68,51 @@ export const Playlist: React.FC<PlaylistProps> = ({
 
             <div className="playlist-items">
                 <AnimatePresence>
-                    {items.map((item, index) => (
-                        <motion.div
-                            key={`${item}-${index}`}
-                            className={`playlist-item ${index === currentIndex ? 'active' : ''}`}
-                            onClick={() => onItemClick(index)}
-                            initial={{ opacity: 0, y: 10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0, x: -20 }}
-                            transition={{ delay: index * 0.05 }}
-                        >
-                            <div className="item-info">
-                                {index === currentIndex && <Play size={12} className="playing-indicator" />}
-                                <span className="item-name">
-                                    {decodeURIComponent(item.split('/').pop() || '')}
-                                </span>
-                            </div>
-                            <button
-                                className="remove-button"
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    onRemoveItem(index);
+                    {items.map((item, index) => {
+                        const progress = getVideoProgress(item);
+
+                        return (
+                            <motion.div
+                                key={`${item}-${index}`}
+                                className={`playlist-item ${index === currentIndex ? 'active' : ''}`}
+                                onClick={() => onItemClick(index)}
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, x: -20 }}
+                                transition={{ delay: index * 0.05 }}
+                                role="button"
+                                tabIndex={0}
+                                aria-label={`Play ${getFileName(item)}`}
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter' || e.key === ' ') {
+                                        e.preventDefault();
+                                        onItemClick(index);
+                                    }
                                 }}
                             >
-                                <Trash2 size={14} />
-                            </button>
-                        </motion.div>
-                    ))}
+                                <div className="item-info">
+                                    {index === currentIndex && <Play size={12} className="playing-indicator" />}
+                                    <span className="item-name" title={getFileName(item)}>
+                                        {getFileName(item)}
+                                    </span>
+                                </div>
+                                {progress > 0 && (
+                                    <div className="progress-indicator" style={{ width: `${progress}%` }} />
+                                )}
+                                <button
+                                    className="remove-button"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        onRemoveItem(index);
+                                    }}
+                                    aria-label={`Remove ${getFileName(item)}`}
+                                    title="Remove from playlist"
+                                >
+                                    <Trash2 size={14} />
+                                </button>
+                            </motion.div>
+                        );
+                    })}
                 </AnimatePresence>
                 {items.length === 0 && (
                     <div className="empty-playlist">

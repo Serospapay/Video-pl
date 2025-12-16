@@ -5,50 +5,72 @@ import { Player } from './components/Player/Player';
 import { Playlist } from './components/Playlist/Playlist';
 import { Upload, List } from 'lucide-react';
 import { saveState, loadState } from './utils/storage';
+import { pathToFileUrl, isValidFilePath } from './utils/fileUtils';
+import { STORAGE_KEYS } from './utils/constants';
 import './App.css';
 
+// Extend File interface to include path property (Electron specific)
+interface ElectronFile extends File {
+  path?: string;
+}
+
 function App() {
-  const [playlist, setPlaylist] = useState<string[]>(() => loadState('playlist', []));
-  const [currentIndex, setCurrentIndex] = useState<number>(() => loadState('currentIndex', -1));
+  const [playlist, setPlaylist] = useState<string[]>(() =>
+    loadState(STORAGE_KEYS.PLAYLIST, [])
+  );
+  const [currentIndex, setCurrentIndex] = useState<number>(() =>
+    loadState(STORAGE_KEYS.CURRENT_INDEX, -1)
+  );
   const [showPlaylist, setShowPlaylist] = useState(true);
+  const [isDragging, setIsDragging] = useState(false);
 
   // Playlist modes
-  const [isLooping, setIsLooping] = useState(() => loadState('isLooping', false));
-  const [isShuffling, setIsShuffling] = useState(() => loadState('isShuffling', false));
+  const [isLooping, setIsLooping] = useState(() =>
+    loadState(STORAGE_KEYS.IS_LOOPING, false)
+  );
+  const [isShuffling, setIsShuffling] = useState(() =>
+    loadState(STORAGE_KEYS.IS_SHUFFLING, false)
+  );
 
   // Save state on changes
   useEffect(() => {
-    saveState('playlist', playlist);
-    saveState('currentIndex', currentIndex);
-    saveState('isLooping', isLooping);
-    saveState('isShuffling', isShuffling);
+    saveState(STORAGE_KEYS.PLAYLIST, playlist);
+    saveState(STORAGE_KEYS.CURRENT_INDEX, currentIndex);
+    saveState(STORAGE_KEYS.IS_LOOPING, isLooping);
+    saveState(STORAGE_KEYS.IS_SHUFFLING, isShuffling);
   }, [playlist, currentIndex, isLooping, isShuffling]);
 
   const handleOpenFile = async () => {
-    const filePath = await window.electron.openFile();
-    if (filePath) {
-      // Ensure we use file:/// for Windows paths to be safe
-      const path = `file:///${filePath.replace(/\\/g, '/')}`;
-      setPlaylist(prev => [...prev, path]);
-      if (currentIndex === -1) {
-        setCurrentIndex(playlist.length); // It will be the next index
+    try {
+      const filePath = await window.electron.openFile();
+      if (filePath && isValidFilePath(filePath)) {
+        const fileUrl = pathToFileUrl(filePath);
+        setPlaylist(prev => [...prev, fileUrl]);
+        if (currentIndex === -1) {
+          setCurrentIndex(playlist.length);
+        }
       }
+    } catch (error) {
+      console.error('Failed to open file:', error);
     }
   };
 
   const handleDrop = (e: DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     e.stopPropagation();
+    setIsDragging(false);
 
-    const files = Array.from(e.dataTransfer.files);
+    const files = Array.from(e.dataTransfer.files) as ElectronFile[];
     const videoFiles = files.filter(f => f.type.startsWith('video/'));
 
     if (videoFiles.length > 0) {
       const newPaths = videoFiles.map(f => {
-        // @ts-expect-error
         const path = f.path;
-        // Use file:/// for local paths
-        return path ? `file:///${path.replace(/\\/g, '/')}` : URL.createObjectURL(f);
+        if (path && isValidFilePath(path)) {
+          return pathToFileUrl(path);
+        }
+        // Fallback to blob URL for non-Electron environments
+        return URL.createObjectURL(f);
       });
 
       setPlaylist(prev => [...prev, ...newPaths]);
@@ -63,6 +85,21 @@ function App() {
     e.stopPropagation();
   };
 
+  const handleDragEnter = (e: DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    // Only set to false if leaving the app container
+    if (e.currentTarget === e.target) {
+      setIsDragging(false);
+    }
+  };
+
   const playItem = (index: number) => {
     setCurrentIndex(index);
   };
@@ -70,7 +107,7 @@ function App() {
   const removeItem = (index: number) => {
     setPlaylist(prev => prev.filter((_, i) => i !== index));
     if (currentIndex === index) {
-      setCurrentIndex(-1); // Stop playing if removed
+      setCurrentIndex(-1);
     } else if (currentIndex > index) {
       setCurrentIndex(currentIndex - 1);
     }
@@ -93,9 +130,11 @@ function App() {
 
   return (
     <div
-      className="app-container"
+      className={`app-container ${isDragging ? 'dragging' : ''}`}
       onDrop={handleDrop}
       onDragOver={handleDragOver}
+      onDragEnter={handleDragEnter}
+      onDragLeave={handleDragLeave}
     >
       <TitleBar />
       <div className="main-layout">
@@ -104,7 +143,7 @@ function App() {
             <Player src={currentSrc} onEnded={handleVideoEnded} />
           ) : (
             <div className="empty-state">
-              <button onClick={handleOpenFile} className="open-button">
+              <button onClick={handleOpenFile} className="open-button" aria-label="Open video file">
                 <Upload size={48} />
                 <span>Open Video</span>
               </button>
@@ -120,7 +159,6 @@ function App() {
             onItemClick={playItem}
             onRemoveItem={removeItem}
             onAddFile={handleOpenFile}
-            // Pass mode props here (need to update Playlist component first)
             isLooping={isLooping}
             isShuffling={isShuffling}
             onToggleLoop={() => setIsLooping(!isLooping)}
@@ -129,9 +167,20 @@ function App() {
         )}
       </div>
 
+      {isDragging && (
+        <div className="drag-overlay">
+          <div className="drag-overlay-content">
+            <Upload size={64} />
+            <p>Drop video files here</p>
+          </div>
+        </div>
+      )}
+
       <button
         className="playlist-toggle"
         onClick={() => setShowPlaylist(!showPlaylist)}
+        aria-label={showPlaylist ? 'Hide playlist' : 'Show playlist'}
+        title={showPlaylist ? 'Hide playlist' : 'Show playlist'}
       >
         <List size={20} />
       </button>

@@ -13,7 +13,8 @@ body {
   background-color: var(--bg-color);
   color: var(--text-color);
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
-  overflow: hidden; /* Custom scrollbars or hidden for app feel */
+  overflow: hidden;
+  /* Custom scrollbars or hidden for app feel */
   user-select: none;
 }
 
@@ -36,13 +37,45 @@ body {
 ::-webkit-scrollbar {
   width: 8px;
 }
+
 ::-webkit-scrollbar-track {
   background: transparent;
 }
+
 ::-webkit-scrollbar-thumb {
   background: #333;
   border-radius: 4px;
 }
+
 ::-webkit-scrollbar-thumb:hover {
   background: #555;
+}
+
+/* Focus visible styles */
+*:focus-visible {
+  outline: 2px solid var(--accent-color);
+  outline-offset: 2px;
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
 }

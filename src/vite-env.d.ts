@@ -1,5 +1,4 @@
 /// <reference types="vite/client" />
-/// <reference types="vite/client" />
 
 interface Window {
     electron: {
@@ -8,5 +7,6 @@ interface Window {
         close: () => void;
         log: (message: string) => void;
         openFile: () => Promise<string | null>;
+        saveScreenshot: (dataUrl: string, defaultName: string) => Promise<boolean>;
     };
 }

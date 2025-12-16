@@ -17,13 +17,28 @@ export const TitleBar: React.FC<TitleBarProps> = ({ title = 'Video Player' }) =>
                 <span className="titlebar-title">{title}</span>
             </div>
             <div className="titlebar-controls">
-                <button onClick={handleMinimize} className="titlebar-button" title="Minimize">
+                <button
+                    onClick={handleMinimize}
+                    className="titlebar-button"
+                    title="Minimize"
+                    aria-label="Minimize window"
+                >
                     <Minus size={16} />
                 </button>
-                <button onClick={handleMaximize} className="titlebar-button" title="Maximize">
+                <button
+                    onClick={handleMaximize}
+                    className="titlebar-button"
+                    title="Maximize"
+                    aria-label="Maximize window"
+                >
                     <Square size={14} />
                 </button>
-                <button onClick={handleClose} className="titlebar-button close" title="Close">
+                <button
+                    onClick={handleClose}
+                    className="titlebar-button close"
+                    title="Close"
+                    aria-label="Close window"
+                >
                     <X size={16} />
                 </button>
             </div>

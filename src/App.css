@@ -80,3 +80,48 @@
 .drag-hint {
   font-size: 14px;
 }
+
+.app-container.dragging .content {
+  border: 2px dashed var(--accent-color);
+  background: radial-gradient(circle at center, rgba(100, 108, 255, 0.1) 0%, #000000 100%);
+}
+
+.drag-overlay {
+  position: absolute;
+  top: var(--titlebar-height);
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(10px);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  pointer-events: none;
+}
+
+.drag-overlay-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  color: var(--accent-color);
+  font-size: 24px;
+  font-weight: 600;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+
+  0%,
+  100% {
+    opacity: 0.8;
+    transform: scale(1);
+  }
+
+  50% {
+    opacity: 1;
+    transform: scale(1.05);
+  }
+}

@@ -18,7 +18,8 @@ function createWindow() {
       preload: path.join(__dirname, 'preload.js'),
       nodeIntegration: false,
       contextIsolation: true,
-      webSecurity: false, // Allow loading local resources
+      sandbox: false, // Need to disable for file:// protocol
+      webSecurity: false, // Required for loading local video files via file://
     },
     backgroundColor: '#000000', // Dark background
   });
@@ -57,14 +58,50 @@ function createWindow() {
 
   // File open handler
   ipcMain.handle('open-file', async () => {
-    const { canceled, filePaths } = await dialog.showOpenDialog({
-      properties: ['openFile'],
-      filters: [{ name: 'Movies', extensions: ['mkv', 'avi', 'mp4', 'webm', 'mov'] }]
-    });
-    if (canceled) {
+    try {
+      const { canceled, filePaths } = await dialog.showOpenDialog({
+        properties: ['openFile'],
+        filters: [{ name: 'Movies', extensions: ['mkv', 'avi', 'mp4', 'webm', 'mov', 'flv', 'wmv', 'm4v'] }]
+      });
+
+      if (canceled || !filePaths || filePaths.length === 0) {
+        return null;
+      }
+
+      const filePath = filePaths[0];
+      log.info(`File selected: ${filePath}`);
+      return filePath;
+    } catch (error) {
+      log.error('Error opening file:', error);
       return null;
-    } else {
-      return filePaths[0];
+    }
+  });
+
+  // Screenshot save handler
+  ipcMain.handle('save-screenshot', async (_event, dataUrl: string, defaultName: string) => {
+    try {
+      const { canceled, filePath } = await dialog.showSaveDialog({
+        defaultPath: defaultName,
+        filters: [{ name: 'Images', extensions: ['png'] }]
+      });
+
+      if (canceled || !filePath) {
+        return false;
+      }
+
+      // Convert base64 to buffer
+      const base64Data = dataUrl.replace(/^data:image\/png;base64,/, '');
+      const buffer = Buffer.from(base64Data, 'base64');
+
+      // Write file
+      const fs = require('fs');
+      fs.writeFileSync(filePath, buffer);
+
+      log.info(`Screenshot saved: ${filePath}`);
+      return true;
+    } catch (error) {
+      log.error('Error saving screenshot:', error);
+      return false;
     }
   });
 }

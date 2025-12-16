@@ -1,6 +1,8 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Play, Pause, Volume2, VolumeX, Maximize, Minimize, PictureInPicture, Gauge } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useState } from 'react';
+import { PLAYBACK_SPEEDS } from '../../utils/constants';
 
 interface ControlsProps {
     isPlaying: boolean;
@@ -20,6 +22,7 @@ interface ControlsProps {
 }
 
 const formatTime = (time: number) => {
+    if (!isFinite(time)) return '0:00';
     const minutes = Math.floor(time / 60);
     const seconds = Math.floor(time % 60);
     return `${minutes}:${seconds.toString().padStart(2, '0')}`;
@@ -42,7 +45,6 @@ export const Controls: React.FC<ControlsProps> = ({
     onTogglePiP,
 }) => {
     const [showSpeedMenu, setShowSpeedMenu] = useState(false);
-    const speeds = [0.5, 0.75, 1, 1.25, 1.5, 2];
 
     return (
         <motion.div
@@ -60,6 +62,8 @@ export const Controls: React.FC<ControlsProps> = ({
                     value={currentTime}
                     onChange={(e) => onSeek(Number(e.target.value))}
                     className="progress-bar"
+                    aria-label="Video progress"
+                    title={`${formatTime(currentTime)} / ${formatTime(duration)}`}
                 />
             </div>
 
@@ -70,6 +74,8 @@ export const Controls: React.FC<ControlsProps> = ({
                         className="control-button"
                         whileHover={{ scale: 1.1 }}
                         whileTap={{ scale: 0.9 }}
+                        aria-label={isPlaying ? 'Pause' : 'Play'}
+                        title={isPlaying ? 'Pause (Space)' : 'Play (Space)'}
                     >
                         {isPlaying ? <Pause size={20} /> : <Play size={20} />}
                     </motion.button>
@@ -80,6 +86,8 @@ export const Controls: React.FC<ControlsProps> = ({
                             className="control-button"
                             whileHover={{ scale: 1.1 }}
                             whileTap={{ scale: 0.9 }}
+                            aria-label={isMuted ? 'Unmute' : 'Mute'}
+                            title={isMuted ? 'Unmute (M)' : 'Mute (M)'}
                         >
                             {isMuted || volume === 0 ? <VolumeX size={20} /> : <Volume2 size={20} />}
                         </motion.button>
@@ -91,24 +99,28 @@ export const Controls: React.FC<ControlsProps> = ({
                             value={isMuted ? 0 : volume}
                             onChange={(e) => onVolumeChange(Number(e.target.value))}
                             className="volume-slider"
+                            aria-label="Volume"
+                            title={`Volume: ${Math.round((isMuted ? 0 : volume) * 100)}%`}
                         />
                     </div>
 
-                    <span className="time-display">
+                    <span className="time-display" aria-label="Current time and duration">
                         {formatTime(currentTime)} / {formatTime(duration)}
                     </span>
                 </div>
 
                 <div className="controls-right">
-                    <div className="speed-control-wrapper" style={{ position: 'relative' }}>
+                    <div className="speed-control-wrapper">
                         <motion.button
                             onClick={() => setShowSpeedMenu(!showSpeedMenu)}
-                            className="control-button"
+                            className="control-button speed-button"
                             whileHover={{ scale: 1.1 }}
                             whileTap={{ scale: 0.9 }}
+                            aria-label={`Playback speed: ${playbackRate}x`}
+                            title={`Playback speed: ${playbackRate}x`}
                         >
-                            <Gauge size={20} />
-                            <span style={{ fontSize: '12px', marginLeft: '4px' }}>{playbackRate}x</span>
+                            <Gauge size={18} />
+                            <span className="speed-text">{playbackRate}x</span>
                         </motion.button>
 
                         <AnimatePresence>
@@ -116,22 +128,12 @@ export const Controls: React.FC<ControlsProps> = ({
                                 <motion.div
                                     className="speed-menu glass"
                                     initial={{ opacity: 0, y: 10 }}
-                                    animate={{ opacity: 1, y: -10 }}
+                                    animate={{ opacity: 1, y: 0 }}
                                     exit={{ opacity: 0, y: 10 }}
-                                    style={{
-                                        position: 'absolute',
-                                        bottom: '100%',
-                                        left: '50%',
-                                        transform: 'translateX(-50%)',
-                                        padding: '8px',
-                                        borderRadius: '8px',
-                                        display: 'flex',
-                                        flexDirection: 'column',
-                                        gap: '4px',
-                                        marginBottom: '8px'
-                                    }}
+                                    role="menu"
+                                    aria-label="Playback speed options"
                                 >
-                                    {speeds.map(speed => (
+                                    {PLAYBACK_SPEEDS.map(speed => (
                                         <button
                                             key={speed}
                                             onClick={() => {
@@ -139,15 +141,8 @@ export const Controls: React.FC<ControlsProps> = ({
                                                 setShowSpeedMenu(false);
                                             }}
                                             className={`speed-option ${playbackRate === speed ? 'active' : ''}`}
-                                            style={{
-                                                background: playbackRate === speed ? 'rgba(255,255,255,0.2)' : 'transparent',
-                                                border: 'none',
-                                                color: 'white',
-                                                padding: '4px 12px',
-                                                borderRadius: '4px',
-                                                cursor: 'pointer',
-                                                textAlign: 'center'
-                                            }}
+                                            role="menuitem"
+                                            aria-label={`Set speed to ${speed}x`}
                                         >
                                             {speed}x
                                         </button>
@@ -163,6 +158,7 @@ export const Controls: React.FC<ControlsProps> = ({
                         whileHover={{ scale: 1.1 }}
                         whileTap={{ scale: 0.9 }}
                         title="Picture in Picture"
+                        aria-label="Toggle picture in picture"
                     >
                         <PictureInPicture size={20} />
                     </motion.button>
@@ -172,6 +168,8 @@ export const Controls: React.FC<ControlsProps> = ({
                         className="control-button"
                         whileHover={{ scale: 1.1 }}
                         whileTap={{ scale: 0.9 }}
+                        aria-label={isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
+                        title={isFullscreen ? 'Exit fullscreen (F)' : 'Fullscreen (F)'}
                     >
                         {isFullscreen ? <Minimize size={20} /> : <Maximize size={20} />}
                     </motion.button>

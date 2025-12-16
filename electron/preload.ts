@@ -6,4 +6,6 @@ contextBridge.exposeInMainWorld('electron', {
     close: () => ipcRenderer.send('close-window'),
     log: (message: string) => ipcRenderer.send('log-message', message),
     openFile: () => ipcRenderer.invoke('open-file'),
+    saveScreenshot: (dataUrl: string, defaultName: string) =>
+        ipcRenderer.invoke('save-screenshot', dataUrl, defaultName),
 });

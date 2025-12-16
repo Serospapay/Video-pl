@@ -1,7 +1,9 @@
 {
-  "name": "4",
+  "name": "video-player",
+  "version": "1.0.0",
+  "description": "Modern video player with playlist support, subtitles, and advanced controls",
+  "author": "Serospapay",
   "private": true,
-  "version": "0.0.0",
   "type": "module",
   "main": "dist-electron/main.js",
   "scripts": {
