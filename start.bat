@@ -1,0 +1,3 @@
+@echo off
+echo Starting Video Player in development mode...
+npm run dev:electron
