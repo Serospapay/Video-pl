@@ -85,24 +85,41 @@ export const useVideoControls = (): UseVideoControlsReturn => {
     }, []);
 
     const togglePlay = useCallback(() => {
-        if (videoRef.current) {
-            if (isPlaying) {
-                videoRef.current.pause();
-            } else {
-                videoRef.current.play().catch((err) => {
-                    console.error('Failed to play video:', err);
-                    setError('Failed to play video');
-                });
-            }
-            setIsPlaying(!isPlaying);
+        if (!videoRef.current) return;
+
+        if (isPlaying) {
+            videoRef.current.pause();
+            setIsPlaying(false);
+            return;
         }
+
+        videoRef.current.play()
+            .then(() => setIsPlaying(true))
+            .catch((err) => {
+                console.error('Failed to play video:', err);
+                setError('Failed to play video');
+                setIsPlaying(false);
+            });
     }, [isPlaying]);
 
     const handleSeek = useCallback((time: number) => {
-        if (videoRef.current) {
-            videoRef.current.currentTime = time;
-            setCurrentTime(time);
+        if (!videoRef.current) return;
+
+        const safeDuration = Number.isFinite(videoRef.current.duration) && videoRef.current.duration > 0
+            ? videoRef.current.duration
+            : undefined;
+
+        const clampedTime = Math.max(
+            0,
+            safeDuration !== undefined ? Math.min(time, safeDuration) : time,
+        );
+
+        if (!Number.isFinite(clampedTime)) {
+            return;
         }
+
+        videoRef.current.currentTime = clampedTime;
+        setCurrentTime(clampedTime);
     }, []);
 
     const handleVolumeChange = useCallback((newVolume: number) => {

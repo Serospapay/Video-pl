@@ -26,24 +26,3 @@ export const loadState = <T>(key: string, defaultValue: T): T => {
     }
 };
 
-/**
- * Remove state from localStorage
- */
-export const removeState = (key: string): void => {
-    try {
-        localStorage.removeItem(key);
-    } catch (error) {
-        console.error(`Failed to remove state for key "${key}":`, error);
-    }
-};
-
-/**
- * Clear all state from localStorage
- */
-export const clearAllState = (): void => {
-    try {
-        localStorage.clear();
-    } catch (error) {
-        console.error('Failed to clear all state:', error);
-    }
-};

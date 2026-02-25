@@ -1,5 +1,7 @@
 import { VIDEO_EXTENSIONS } from './constants';
 
+export type VideoExtension = (typeof VIDEO_EXTENSIONS)[number];
+
 /**
  * Extract filename from a file path (supports both Windows and Unix paths)
  */
@@ -11,19 +13,20 @@ export const getFileName = (path: string): string => {
 /**
  * Validate if a file path is a video file based on extension
  */
-export const isVideoFile = (path: string): boolean => {
-    const extension = path.split('.').pop()?.toLowerCase();
-    return extension ? VIDEO_EXTENSIONS.includes(extension as any) : false;
+export const isVideoFile = (path: string): path is `${string}.${VideoExtension}` => {
+    const extension = path.split('.').pop()?.toLowerCase() as VideoExtension | undefined;
+    return extension ? VIDEO_EXTENSIONS.includes(extension) : false;
 };
 
 /**
- * Convert a local file path to file:/// URL
+ * Convert a local file path to media:// URL for Electron protocol
  */
 export const pathToFileUrl = (path: string): string => {
-    // Normalize path separators to forward slashes
-    const normalizedPath = path.replace(/\\/g, '/');
-    // Ensure it starts with file:///
-    return `file:///${normalizedPath}`;
+    const normalizedPath = path
+        .replace(/\\/g, '/')
+        .replace(/\/{2,}/g, '/');
+    const encodedPath = encodeURIComponent(normalizedPath);
+    return `media://${encodedPath}`;
 };
 
 /**
@@ -45,8 +48,11 @@ export const isValidFilePath = (path: string): boolean => {
  * Get file extension from path
  */
 export const getFileExtension = (path: string): string => {
+    if (!path.includes('.')) {
+        return '';
+    }
     const extension = path.split('.').pop()?.toLowerCase();
-    return extension || '';
+    return extension ?? '';
 };
 
 /**

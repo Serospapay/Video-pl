@@ -20,24 +20,24 @@ export const TitleBar: React.FC<TitleBarProps> = ({ title = 'Video Player' }) =>
                 <button
                     onClick={handleMinimize}
                     className="titlebar-button"
-                    title="Minimize"
-                    aria-label="Minimize window"
+                    title="Згорнути"
+                    aria-label="Згорнути вікно"
                 >
                     <Minus size={16} />
                 </button>
                 <button
                     onClick={handleMaximize}
                     className="titlebar-button"
-                    title="Maximize"
-                    aria-label="Maximize window"
+                    title="Розгорнути"
+                    aria-label="Розгорнути вікно"
                 >
                     <Square size={14} />
                 </button>
                 <button
                     onClick={handleClose}
                     className="titlebar-button close"
-                    title="Close"
-                    aria-label="Close window"
+                    title="Закрити"
+                    aria-label="Закрити вікно"
                 >
                     <X size={16} />
                 </button>

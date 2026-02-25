@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { KEYBOARD_SHORTCUTS } from '../utils/constants';
 
 interface KeyboardShortcutsHandlers {
@@ -9,6 +9,9 @@ interface KeyboardShortcutsHandlers {
     onVolumeDown?: () => void;
     onToggleFullscreen?: () => void;
     onToggleMute?: () => void;
+    onNextTrack?: () => void;
+    onPrevTrack?: () => void;
+    onShowHelp?: () => void;
 }
 
 /**
@@ -16,8 +19,16 @@ interface KeyboardShortcutsHandlers {
  * Automatically ignores shortcuts when user is typing in input/textarea
  */
 export const useKeyboardShortcuts = (handlers: KeyboardShortcutsHandlers) => {
+    const handlersRef = useRef(handlers);
+
+    useEffect(() => {
+        handlersRef.current = handlers;
+    }, [handlers]);
+
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
+            const current = handlersRef.current;
+
             // Ignore shortcuts when user is typing
             if (
                 e.target instanceof HTMLInputElement ||
@@ -27,55 +38,71 @@ export const useKeyboardShortcuts = (handlers: KeyboardShortcutsHandlers) => {
             }
 
             const { code } = e;
+            const isIn = (keys: readonly string[]) => keys.includes(code);
 
             // Play/Pause
-            if (KEYBOARD_SHORTCUTS.PLAY_PAUSE.includes(code as any)) {
+            if (isIn(KEYBOARD_SHORTCUTS.PLAY_PAUSE)) {
                 e.preventDefault();
-                handlers.onPlayPause?.();
+                current.onPlayPause?.();
             }
             // Seek forward (small)
-            else if (KEYBOARD_SHORTCUTS.SEEK_FORWARD_SMALL.includes(code as any)) {
+            else if (isIn(KEYBOARD_SHORTCUTS.SEEK_FORWARD_SMALL)) {
                 e.preventDefault();
-                handlers.onSeekForward?.(5);
+                current.onSeekForward?.(5);
             }
             // Seek backward (small)
-            else if (KEYBOARD_SHORTCUTS.SEEK_BACKWARD_SMALL.includes(code as any)) {
+            else if (isIn(KEYBOARD_SHORTCUTS.SEEK_BACKWARD_SMALL)) {
                 e.preventDefault();
-                handlers.onSeekBackward?.(5);
+                current.onSeekBackward?.(5);
             }
             // Seek forward (large)
-            else if (KEYBOARD_SHORTCUTS.SEEK_FORWARD_LARGE.includes(code as any)) {
+            else if (isIn(KEYBOARD_SHORTCUTS.SEEK_FORWARD_LARGE)) {
                 e.preventDefault();
-                handlers.onSeekForward?.(10);
+                current.onSeekForward?.(10);
             }
             // Seek backward (large)
-            else if (KEYBOARD_SHORTCUTS.SEEK_BACKWARD_LARGE.includes(code as any)) {
+            else if (isIn(KEYBOARD_SHORTCUTS.SEEK_BACKWARD_LARGE)) {
                 e.preventDefault();
-                handlers.onSeekBackward?.(10);
+                current.onSeekBackward?.(10);
             }
             // Volume up
-            else if (KEYBOARD_SHORTCUTS.VOLUME_UP.includes(code as any)) {
+            else if (isIn(KEYBOARD_SHORTCUTS.VOLUME_UP)) {
                 e.preventDefault();
-                handlers.onVolumeUp?.();
+                current.onVolumeUp?.();
             }
             // Volume down
-            else if (KEYBOARD_SHORTCUTS.VOLUME_DOWN.includes(code as any)) {
+            else if (isIn(KEYBOARD_SHORTCUTS.VOLUME_DOWN)) {
                 e.preventDefault();
-                handlers.onVolumeDown?.();
+                current.onVolumeDown?.();
             }
             // Toggle fullscreen
-            else if (KEYBOARD_SHORTCUTS.TOGGLE_FULLSCREEN.includes(code as any)) {
+            else if (isIn(KEYBOARD_SHORTCUTS.TOGGLE_FULLSCREEN)) {
                 e.preventDefault();
-                handlers.onToggleFullscreen?.();
+                current.onToggleFullscreen?.();
             }
             // Toggle mute
-            else if (KEYBOARD_SHORTCUTS.TOGGLE_MUTE.includes(code as any)) {
+            else if (isIn(KEYBOARD_SHORTCUTS.TOGGLE_MUTE)) {
                 e.preventDefault();
-                handlers.onToggleMute?.();
+                current.onToggleMute?.();
+            }
+            // Next track
+            else if (isIn(KEYBOARD_SHORTCUTS.NEXT_TRACK)) {
+                e.preventDefault();
+                current.onNextTrack?.();
+            }
+            // Previous track
+            else if (isIn(KEYBOARD_SHORTCUTS.PREV_TRACK)) {
+                e.preventDefault();
+                current.onPrevTrack?.();
+            }
+            // Help (? key is Shift+Slash)
+            else if (code === 'Slash' && e.shiftKey) {
+                e.preventDefault();
+                current.onShowHelp?.();
             }
         };
 
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [handlers]);
+    }, []);
 };

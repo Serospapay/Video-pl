@@ -7,41 +7,53 @@ import { captureVideoFrame, saveScreenshot, generateScreenshotName } from '../..
 import { Captions, Camera } from 'lucide-react';
 import { useKeyboardShortcuts } from '../../hooks/useKeyboardShortcuts';
 import { CONTROLS_HIDE_TIMEOUT, VOLUME_STEP } from '../../utils/constants';
+import { useVideoControls } from '../../hooks/useVideoControls';
 import './Player.css';
 
 interface PlayerProps {
     src: string;
     onEnded?: () => void;
+    onNext?: () => void;
+    onPrev?: () => void;
 }
 
-export const Player: React.FC<PlayerProps> = ({ src, onEnded }) => {
-    const videoRef = useRef<HTMLVideoElement>(null);
-    const [isPlaying, setIsPlaying] = useState(false);
-    const [currentTime, setCurrentTime] = useState(0);
-    const [duration, setDuration] = useState(0);
-    const [volume, setVolume] = useState(1);
-    const [isMuted, setIsMuted] = useState(false);
-    const [playbackRate, setPlaybackRate] = useState(1);
-    const [isFullscreen, setIsFullscreen] = useState(false);
+export const Player: React.FC<PlayerProps> = ({ src, onEnded, onNext, onPrev }) => {
+    const {
+        videoRef,
+        isPlaying,
+        currentTime,
+        duration,
+        volume,
+        isMuted,
+        playbackRate,
+        isFullscreen,
+        isLoading,
+        error,
+        togglePlay,
+        handleSeek,
+        handleVolumeChange,
+        toggleMute,
+        toggleFullscreen,
+        handlePlaybackRateChange,
+        setCurrentTime,
+        setDuration,
+        setIsPlaying,
+        setIsLoading,
+        setError,
+    } = useVideoControls();
     const [showControls, setShowControls] = useState(true);
-    const [isLoading, setIsLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
     const [screenshotMessage, setScreenshotMessage] = useState<string | null>(null);
+    const [showHelpOverlay, setShowHelpOverlay] = useState(false);
     const controlsTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const savePositionIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+    // A-B repeat: pointA and pointB in seconds; when both set, loop between them
+    const [abPointA, setAbPointA] = useState<number | null>(null);
+    const [abPointB, setAbPointB] = useState<number | null>(null);
 
     // Subtitles state
     const [subtitles, setSubtitles] = useState<Subtitle[]>([]);
     const [currentSubtitle, setCurrentSubtitle] = useState<string>('');
-
-    // Sync video element with state
-    useEffect(() => {
-        if (videoRef.current) {
-            videoRef.current.volume = volume;
-            videoRef.current.muted = isMuted;
-            videoRef.current.playbackRate = playbackRate;
-        }
-    }, [volume, isMuted, playbackRate]);
 
     // Load saved position when video changes
     useEffect(() => {
@@ -53,9 +65,9 @@ export const Player: React.FC<PlayerProps> = ({ src, onEnded }) => {
                 setCurrentTime(history.position);
             }
         }
-    }, [src, duration]);
+    }, [src, duration, videoRef, setCurrentTime]);
 
-    // Auto-save position periodically
+    // Auto-save position periodically using the live video currentTime.
     useEffect(() => {
         if (savePositionIntervalRef.current) {
             clearInterval(savePositionIntervalRef.current);
@@ -63,7 +75,8 @@ export const Player: React.FC<PlayerProps> = ({ src, onEnded }) => {
 
         if (isPlaying && duration > 0) {
             savePositionIntervalRef.current = setInterval(() => {
-                saveVideoPosition(src, currentTime, duration);
+                const liveTime = videoRef.current?.currentTime ?? currentTime;
+                saveVideoPosition(src, liveTime, duration);
             }, SAVE_INTERVAL);
         }
 
@@ -72,36 +85,17 @@ export const Player: React.FC<PlayerProps> = ({ src, onEnded }) => {
                 clearInterval(savePositionIntervalRef.current);
             }
         };
-    }, [isPlaying, currentTime, duration, src]);
-
-    // Reset state when source changes
-    useEffect(() => {
-        setIsPlaying(false);
-        setCurrentTime(0);
-        setDuration(0);
-        setIsLoading(true);
-        setError(null);
-        setSubtitles([]);
-        setCurrentSubtitle('');
-    }, [src]);
-
-    const togglePlay = useCallback(() => {
-        if (videoRef.current) {
-            if (isPlaying) {
-                videoRef.current.pause();
-            } else {
-                videoRef.current.play().catch((err) => {
-                    console.error('Failed to play video:', err);
-                    setError('Failed to play video');
-                });
-            }
-            setIsPlaying(!isPlaying);
-        }
-    }, [isPlaying]);
+    }, [isPlaying, duration, src, videoRef, currentTime]);
 
     const handleTimeUpdate = () => {
         if (videoRef.current) {
-            const time = videoRef.current.currentTime;
+            let time = videoRef.current.currentTime;
+
+            // A-B repeat works only with a valid forward segment.
+            if (abPointA !== null && abPointB !== null && abPointB > abPointA + 0.05 && time >= abPointB) {
+                videoRef.current.currentTime = abPointA;
+                time = abPointA;
+            }
             setCurrentTime(time);
 
             // Find current subtitle
@@ -131,45 +125,6 @@ export const Player: React.FC<PlayerProps> = ({ src, onEnded }) => {
         setIsLoading(false);
     };
 
-    const handleSeek = useCallback((time: number) => {
-        if (videoRef.current) {
-            videoRef.current.currentTime = time;
-            setCurrentTime(time);
-        }
-    }, []);
-
-    const handleVolumeChange = useCallback((newVolume: number) => {
-        const clampedVolume = Math.max(0, Math.min(1, newVolume));
-        setVolume(clampedVolume);
-        setIsMuted(clampedVolume === 0);
-    }, []);
-
-    const toggleMute = useCallback(() => {
-        setIsMuted(!isMuted);
-    }, [isMuted]);
-
-    const toggleFullscreen = useCallback(() => {
-        if (!document.fullscreenElement) {
-            document.documentElement.requestFullscreen().catch((err) => {
-                console.error('Failed to enter fullscreen:', err);
-                setError('Failed to enter fullscreen');
-            });
-            setIsFullscreen(true);
-        } else {
-            document.exitFullscreen().catch((err) => {
-                console.error('Failed to exit fullscreen:', err);
-            });
-            setIsFullscreen(false);
-        }
-    }, []);
-
-    const handlePlaybackRateChange = useCallback((rate: number) => {
-        setPlaybackRate(rate);
-        if (videoRef.current) {
-            videoRef.current.playbackRate = rate;
-        }
-    }, []);
-
     const togglePiP = useCallback(async () => {
         try {
             if (document.pictureInPictureElement) {
@@ -180,7 +135,7 @@ export const Player: React.FC<PlayerProps> = ({ src, onEnded }) => {
         } catch (err) {
             console.error('PiP error:', err);
         }
-    }, []);
+    }, [videoRef]);
 
     // Screenshot functionality
     const takeScreenshot = useCallback(async () => {
@@ -203,7 +158,7 @@ export const Player: React.FC<PlayerProps> = ({ src, onEnded }) => {
         }
 
         setTimeout(() => setScreenshotMessage(null), 3000);
-    }, [src, currentTime]);
+    }, [src, currentTime, videoRef]);
 
     const handleSubtitleUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -245,6 +200,29 @@ export const Player: React.FC<PlayerProps> = ({ src, onEnded }) => {
         handleVolumeChange(Math.max(0, Math.min(1, volume + delta)));
     }, [volume, handleVolumeChange]);
 
+    const setAbAAtCurrentTime = useCallback(() => {
+        if (!videoRef.current || duration <= 0) return;
+        const time = videoRef.current.currentTime;
+        setAbPointA(time);
+        if (abPointB !== null && time >= abPointB) {
+            setAbPointB(null);
+        }
+    }, [videoRef, duration, abPointB]);
+
+    const setAbBAtCurrentTime = useCallback(() => {
+        if (!videoRef.current || duration <= 0) return;
+        const time = videoRef.current.currentTime;
+        if (abPointA === null) {
+            setAbPointA(time);
+            setAbPointB(null);
+            return;
+        }
+        if (time <= abPointA + 0.05) {
+            return;
+        }
+        setAbPointB(time);
+    }, [videoRef, duration, abPointA]);
+
     // Keyboard shortcuts
     useKeyboardShortcuts({
         onPlayPause: togglePlay,
@@ -254,9 +232,12 @@ export const Player: React.FC<PlayerProps> = ({ src, onEnded }) => {
         onVolumeDown: () => handleVolumeChange(Math.max(0, volume - VOLUME_STEP)),
         onToggleFullscreen: toggleFullscreen,
         onToggleMute: toggleMute,
+        onNextTrack: onNext,
+        onPrevTrack: onPrev,
+        onShowHelp: () => setShowHelpOverlay((v) => !v),
     });
 
-    // Add S key for screenshot
+    // S = screenshot; Escape = close help
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
             if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
@@ -264,13 +245,16 @@ export const Player: React.FC<PlayerProps> = ({ src, onEnded }) => {
             }
             if (e.code === 'KeyS') {
                 e.preventDefault();
-                takeScreenshot();
+                void takeScreenshot();
+            }
+            if (e.code === 'Escape' && showHelpOverlay) {
+                setShowHelpOverlay(false);
             }
         };
 
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [takeScreenshot]);
+    }, [takeScreenshot, showHelpOverlay]);
 
     return (
         <div
@@ -295,6 +279,8 @@ export const Player: React.FC<PlayerProps> = ({ src, onEnded }) => {
                 onError={handleError}
                 onLoadStart={handleLoadStart}
                 onCanPlay={handleCanPlay}
+                onPlay={() => setIsPlaying(true)}
+                onPause={() => setIsPlaying(false)}
             />
 
             {isLoading && (
@@ -307,7 +293,7 @@ export const Player: React.FC<PlayerProps> = ({ src, onEnded }) => {
             {error && (
                 <div className="error-overlay">
                     <div className="error-content">
-                        <p className="error-title">Error</p>
+                        <p className="error-title">Помилка</p>
                         <p className="error-message">{error}</p>
                     </div>
                 </div>
@@ -325,7 +311,42 @@ export const Player: React.FC<PlayerProps> = ({ src, onEnded }) => {
                 </div>
             )}
 
-            <div className={`controls-wrapper ${showControls ? 'visible' : 'hidden'}`}>
+            {showHelpOverlay && (
+                <div
+                    className="help-overlay"
+                    role="dialog"
+                    aria-label="Допомога з клавішами"
+                    onClick={() => setShowHelpOverlay(false)}
+                >
+                    <div className="help-content glass" onClick={(e) => e.stopPropagation()}>
+                        <div className="help-header">
+                            <h3>Гарячі клавіші</h3>
+                            <button
+                                type="button"
+                                className="help-close"
+                                onClick={() => setShowHelpOverlay(false)}
+                                aria-label="Закрити"
+                            >
+                                Esc
+                            </button>
+                        </div>
+                        <dl className="help-list">
+                            <dt>Пробіл / K</dt><dd>Пуск / пауза</dd>
+                            <dt>J / L</dt><dd>Перемотка назад / вперед 10 с</dd>
+                            <dt>Стрілки вліво / вправо</dt><dd>5 с назад / вперед</dd>
+                            <dt>Стрілки вгору / вниз</dt><dd>Гучність</dd>
+                            <dt>F</dt><dd>Повний екран</dd>
+                            <dt>M</dt><dd>Звук вкл/викл</dd>
+                            <dt>N / PgDn</dt><dd>Наступне відео</dd>
+                            <dt>P / PgUp</dt><dd>Попереднє відео</dd>
+                            <dt>S</dt><dd>Скріншот</dd>
+                            <dt>?</dt><dd>Ця підказка</dd>
+                        </dl>
+                    </div>
+                </div>
+            )}
+
+            <div className={`controls-wrapper ${showControls ? '' : 'hidden'}`}>
                 <Controls
                     isPlaying={isPlaying}
                     currentTime={currentTime}
@@ -341,6 +362,14 @@ export const Player: React.FC<PlayerProps> = ({ src, onEnded }) => {
                     onToggleFullscreen={toggleFullscreen}
                     onPlaybackRateChange={handlePlaybackRateChange}
                     onTogglePiP={togglePiP}
+                    onNext={onNext}
+                    onPrev={onPrev}
+                    onShowHelp={() => setShowHelpOverlay(true)}
+                    abPointA={abPointA}
+                    abPointB={abPointB}
+                    onSetAbA={setAbAAtCurrentTime}
+                    onSetAbB={setAbBAtCurrentTime}
+                    onResetAb={() => { setAbPointA(null); setAbPointB(null); }}
                 />
 
                 <div className="subtitle-control-container">
@@ -348,25 +377,24 @@ export const Player: React.FC<PlayerProps> = ({ src, onEnded }) => {
                         type="file"
                         accept=".srt"
                         id="subtitle-upload"
-                        style={{ display: 'none' }}
+                        className="subtitle-upload-input"
                         onChange={handleSubtitleUpload}
-                        aria-label="Upload subtitle file"
+                        aria-label="Завантажити субтитри"
                     />
                     <label
                         htmlFor="subtitle-upload"
                         className="subtitle-btn"
-                        title="Upload Subtitles (.srt)"
-                        aria-label="Upload subtitles"
+                        title="Завантажити субтитри (.srt)"
+                        aria-label="Завантажити субтитри"
                     >
                         <Captions size={20} />
                     </label>
 
                     <button
-                        onClick={takeScreenshot}
-                        className="subtitle-btn"
-                        title="Take Screenshot (S)"
-                        aria-label="Take screenshot"
-                        style={{ marginLeft: '8px' }}
+                        onClick={() => { void takeScreenshot(); }}
+                        className="subtitle-btn subtitle-btn-spaced"
+                        title="Зробити скріншот (S)"
+                        aria-label="Зробити скріншот"
                     >
                         <Camera size={20} />
                     </button>

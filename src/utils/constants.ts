@@ -12,7 +12,6 @@ export const SEEK_STEP_LARGE = 10;
 
 // Timeouts (in milliseconds)
 export const CONTROLS_HIDE_TIMEOUT = 3000;
-export const DRAG_DROP_FEEDBACK_TIMEOUT = 2000;
 
 // Keyboard shortcuts
 export const KEYBOARD_SHORTCUTS = {
@@ -25,13 +24,13 @@ export const KEYBOARD_SHORTCUTS = {
     VOLUME_DOWN: ['ArrowDown'],
     TOGGLE_FULLSCREEN: ['KeyF'],
     TOGGLE_MUTE: ['KeyM'],
+    NEXT_TRACK: ['KeyN', 'PageDown'],
+    PREV_TRACK: ['KeyP', 'PageUp'],
+    HELP: ['Slash'],
 } as const;
 
 // Video file extensions
 export const VIDEO_EXTENSIONS = ['mkv', 'avi', 'mp4', 'webm', 'mov', 'flv', 'wmv', 'm4v'] as const;
-
-// Subtitle file extensions
-export const SUBTITLE_EXTENSIONS = ['srt', 'vtt', 'ass', 'ssa'] as const;
 
 // Storage keys
 export const STORAGE_KEYS = {
@@ -42,15 +41,4 @@ export const STORAGE_KEYS = {
     PLAYER_SPEED: 'player_speed',
     IS_LOOPING: 'isLooping',
     IS_SHUFFLING: 'isShuffling',
-} as const;
-
-// Theme colors
-export const THEME = {
-    BG_COLOR: '#0f0f0f',
-    TEXT_COLOR: '#ffffff',
-    ACCENT_COLOR: '#646cff',
-    GLASS_BG: 'rgba(255, 255, 255, 0.05)',
-    GLASS_BORDER: 'rgba(255, 255, 255, 0.1)',
-    ERROR_COLOR: '#e81123',
-    SUCCESS_COLOR: '#10b981',
 } as const;

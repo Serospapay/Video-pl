@@ -1,73 +1,57 @@
-# React + TypeScript + Vite
+## DPFah Video Player
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Сучасний десктопний відеоплеєр на базі **Electron + React + TypeScript** з підтримкою плейлиста, субтитрів, історії переглядів, скріншотів та розширених елементів керування.
 
-Currently, two official plugins are available:
+### Основні можливості
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- **Плейлист**: додавання файлів через діалог або drag-and-drop, індикатор прогресу, режими loop/shuffle.
+- **Керування відтворенням**: пауза/програвання, перемотка, зміна швидкості, гучність, mute, fullscreen, Picture-in-Picture.
+- **Субтитри**: імпорт `.srt`, відображення поверх відео з урахуванням таймінгів.
+- **Історія переглядів**: збереження позиції, маркування відео як переглянутого (>=95%).
+- **Скріншоти**: захоплення кадру та збереження у `.png` (через Electron або як завантаження в браузері).
+- **Клавіатурні шорткати**: J/K/L, стрілки, F, M, S та інші для швидкого керування.
 
-## React Compiler
+### Технології
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- **Фронтенд**: React 19, TypeScript (strict), Vite.
+- **Десктоп**: Electron (frameless вікно, кастомний titlebar, IPC для open/save/логів).
+- **Анімації**: framer-motion.
+- **Лінтинг**: ESLint з type-aware правилами (typescript-eslint).
+- **Тести**: Vitest (unit-тести для утиліт).
 
-## Expanding the ESLint configuration
+### Запуск у режимі розробки
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+- Встановити залежності:
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+npm install
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+- Запустити фронтенд + Electron у dev-режимі:
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+npm run dev:electron
 ```
+
+### Білд застосунку
+
+- Зібрати продакшн-білд Electron-додатку:
+
+```bash
+npm run build:electron
+```
+
+### Перевірки якості
+
+- Лінтер:
+
+```bash
+npm run lint
+```
+
+- Юніт-тести:
+
+```bash
+npm test
+```
+

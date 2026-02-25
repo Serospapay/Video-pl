@@ -10,10 +10,12 @@ interface VideoDisplayProps {
     onError?: (e: React.SyntheticEvent<HTMLVideoElement>) => void;
     onLoadStart?: () => void;
     onCanPlay?: () => void;
+    onPlay?: () => void;
+    onPause?: () => void;
 }
 
 export const VideoDisplay = forwardRef<HTMLVideoElement, VideoDisplayProps>(
-    ({ src, onClick, onDoubleClick, onTimeUpdate, onLoadedMetadata, onEnded, onError, onLoadStart, onCanPlay }, ref) => {
+    ({ src, onClick, onDoubleClick, onTimeUpdate, onLoadedMetadata, onEnded, onError, onLoadStart, onCanPlay, onPlay, onPause }, ref) => {
         return (
             <video
                 ref={ref}
@@ -27,7 +29,9 @@ export const VideoDisplay = forwardRef<HTMLVideoElement, VideoDisplayProps>(
                 onError={onError}
                 onLoadStart={onLoadStart}
                 onCanPlay={onCanPlay}
-                aria-label="Video player"
+                onPlay={onPlay}
+                onPause={onPause}
+                aria-label="Відеоплеєр"
             />
         );
     }

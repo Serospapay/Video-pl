@@ -64,7 +64,7 @@ export const parseSRT = (data: string): Subtitle[] => {
 const timeStringToSeconds = (timeString: string): number => {
     try {
         // Support both comma and dot as millisecond separator
-        const [time, milliseconds] = timeString.split(/[,\.]/);
+        const [time, milliseconds] = timeString.split(/[,.]/);
         const [hours, minutes, seconds] = time.split(':').map(Number);
 
         if (isNaN(hours) || isNaN(minutes) || isNaN(seconds)) {

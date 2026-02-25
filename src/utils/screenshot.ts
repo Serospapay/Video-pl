@@ -47,7 +47,7 @@ export const saveScreenshot = async (dataUrl: string, defaultName: string): Prom
  * Generate screenshot filename based on video name and timestamp
  */
 export const generateScreenshotName = (videoPath: string, currentTime: number): string => {
-    const videoName = videoPath.split(/[/\\]/).pop()?.replace(/\.[^/.]+$/, '') || 'video';
+    const videoName = videoPath.split(/[/\\]/).pop()?.replace(/\.[^/.]+$/, '') ?? 'video';
     const timestamp = formatTimeForFilename(currentTime);
     const date = new Date().toISOString().split('T')[0];
 
